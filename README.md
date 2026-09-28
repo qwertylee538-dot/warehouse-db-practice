@@ -4,13 +4,18 @@ A learning project that models a real multi-store retail/warehouse
 system using PostgreSQL and raw SQL from Python — schema design,
 transactions, locking, indexing, purchase orders, customer orders with
 reservations, price history, discounts, employee shifts, regulatory
-tracking (EGAIS/Mercury-style), and a consolidated dashboard.
+tracking (EGAIS/Mercury-style), a consolidated dashboard, and a
+secured web API with real authentication.
 
 ## Tech stack
 
 - **PostgreSQL 17** — relational database
 - **psycopg2-binary** — raw PostgreSQL driver (no ORM, on purpose)
 - **python-dotenv** — loads database credentials from `.env`
+- **FastAPI + Uvicorn** — the secured web API (step23)
+- **PyJWT** — signs and verifies login tokens
+- **passlib + bcrypt** — one-way password hashing (real passwords are
+  never stored)
 
 ## Project steps
 
@@ -38,7 +43,8 @@ tracking (EGAIS/Mercury-style), and a consolidated dashboard.
 | `step20_shifts.py` | Opening/closing employee shifts, per-shift reports |
 | `step21_regulatory_tracking.py` | EGAIS/Mercury-style unique government marks |
 | `step22_dashboard.py` | Consolidated dashboard reusing every report above |
-| `cli.py` | Interactive menu for the core reports |
+| `step23_web_api.py` | **Secured FastAPI web service**: password hashing, JWT login, protected endpoints |
+| `cli.py` | Interactive terminal menu for the core reports |
 | `fix_step9_data.py`, `fix_step18_data.py`, `fix_step18_data_v2.py` | One-off data corrections for bugs found and fixed along the way |
 
 ## Key concepts covered
@@ -52,6 +58,17 @@ tracking (EGAIS/Mercury-style), and a consolidated dashboard.
 - **Document lifecycles** (pending -> received/fulfilled, with locking to prevent double-processing)
 - **Stock reservation** vs physical stock (available vs on-shelf)
 - **Regulatory-style unique-mark tracking** (EGAIS/Mercury), preventing double-use
+- **Password hashing** (bcrypt) and **JWT-based authentication** on a real web API
+
+## What this project deliberately does NOT include
+
+A production point-of-sale deployment needs several things that go
+beyond code alone: a certified fiscal cash register (54-ФЗ), a real
+registered connection to EGAIS/Mercury (requires legal registration
+and crypto keys), a polished UI for non-technical staff, and hosting/
+backups/monitoring. This project's job is to demonstrate the correct
+underlying architecture and logic — the reusable foundation those
+integrations would sit on top of.
 
 ## Setup
 
@@ -60,6 +77,9 @@ tracking (EGAIS/Mercury-style), and a consolidated dashboard.
 3. `pip install -r requirements.txt`
 4. Run the steps in order, `python step1_connect.py` through `python step22_dashboard.py`.
 5. Explore interactively: `python cli.py`
+6. Run the secured web API: `uvicorn step23_web_api:app --reload`, then
+   open `http://127.0.0.1:8000/docs`. Demo login: `anna` /
+   `demo-password-123`.
 
 ## Sample output
 
