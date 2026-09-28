@@ -1,70 +1,70 @@
 # Warehouse Inventory Management System (PostgreSQL + Python)
 
-A learning project that models a real multi-store warehouse inventory
-system using PostgreSQL and raw SQL from Python. Built as a hands-on
-introduction to relational databases — schema design, foreign keys,
-constraints, transactions, locking, indexing, and reporting — using a
-domain (warehouse stock) that mirrors real day-to-day work with goods
-receiving and shipping.
+A learning project that models a real multi-store retail/warehouse
+system using PostgreSQL and raw SQL from Python — schema design,
+transactions, locking, indexing, purchase orders, customer orders with
+reservations, price history, discounts, employee shifts, regulatory
+tracking (EGAIS/Mercury-style), and a consolidated dashboard.
 
 ## Tech stack
 
 - **PostgreSQL 17** — relational database
-- **psycopg2-binary** — raw PostgreSQL driver for Python (no ORM, on
-  purpose — to see the real SQL being sent)
-- **python-dotenv** — loads database credentials from a `.env` file,
-  never hardcoded in code
-
-## Database schema
-
-- **categories** — lookup table (e.g. "Стройматериалы", "Крепёж")
-- **products** — every item the warehouse handles: SKU, name, unit of
-  measurement, price, and a `category_id` foreign key
-- **stores** — each physical shop/warehouse location
-- **stock_movements** — an append-only log of every IN/OUT event: which
-  product, which store, how many units, which direction, and a note.
-  Current stock is never stored directly — it is always **calculated**
-  from this history (`SUM(IN) - SUM(OUT)`), so it can never silently
-  drift from the truth. Each store's stock is independent, computed by
-  filtering this same table on `store_id`.
-
-Foreign keys and `CHECK` constraints (e.g. `movement_type IN ('IN',
-'OUT')`, `quantity > 0`) enforce data correctness at the database
-level, not just in Python code.
+- **psycopg2-binary** — raw PostgreSQL driver (no ORM, on purpose)
+- **python-dotenv** — loads database credentials from `.env`
 
 ## Project steps
 
 | File | What it does |
 |---|---|
-| `step1_connect.py` | Connects to PostgreSQL from Python, prints the server version |
-| `step2_create_tables.py` | Creates the schema: `categories`, `products`, `stock_movements` |
-| `step3_insert_data.py` | Inserts sample data using parameterized queries (SQL-injection-safe) |
-| `step4_queries.py` | Reporting queries: current stock per product, low-stock alerts, movement volume by category |
-| `step5_transactions.py` | Transactions: safely shipping stock with rollback if it would go negative |
-| `step6_locking.py` | Row locking (`SELECT ... FOR UPDATE`): demonstrates and fixes a real race condition |
-| `step7_stores.py` | Adds multi-store support (a `stores` table + `store_id` column) via a safe schema migration |
-| `step8_store_functions.py` | Per-store reports (comparison, low stock, top products via window functions) and `transfer_stock()` between stores |
-| `step9_indexes.py` | Adds an index and proves the speedup with `EXPLAIN ANALYZE` |
-| `step10_prices.py` | Adds product prices and inventory-value reports |
-| `cli.py` | Interactive menu tying every report into one runnable application |
+| `step1_connect.py` | Connects to PostgreSQL, prints the server version |
+| `step2_create_tables.py` | Schema: `categories`, `products`, `stock_movements` |
+| `step3_insert_data.py` | Sample data via parameterized queries |
+| `step4_queries.py` | Reporting: current stock, low-stock alerts, movement volume |
+| `step5_transactions.py` | Transactions with rollback (safe shipping) |
+| `step6_locking.py` | `SELECT ... FOR UPDATE`: demonstrates and fixes a real race condition |
+| `step7_stores.py` | Multi-store support via `store_id` (schema migration) |
+| `step8_store_functions.py` | Per-store reports, window functions, `transfer_stock()` |
+| `step9_indexes.py` | Indexes + `EXPLAIN ANALYZE` proof |
+| `step10_prices.py` | Product prices, inventory value reports |
+| `step11_suppliers.py` | Suppliers and purchase orders (pending -> received lifecycle) |
+| `step12_customer_orders.py` | Customers, orders, and stock **reservation** |
+| `step13_price_history.py` | Price history instead of one overwritten price |
+| `step14_employees.py` | Employees, `employee_id` on every movement, activity report |
+| `step15_barcodes.py` | Barcodes and scan-to-find, like a handheld terminal |
+| `step16_inventory_count.py` | Инвентаризация: reconciling counted vs system stock |
+| `step17_write_offs.py` | Write-offs (брак/порча) as a distinct movement type |
+| `step18_returns.py` | Customer returns, capped at what was actually bought |
+| `step19_discounts.py` | Time-boxed discounts/promotions |
+| `step20_shifts.py` | Opening/closing employee shifts, per-shift reports |
+| `step21_regulatory_tracking.py` | EGAIS/Mercury-style unique government marks |
+| `step22_dashboard.py` | Consolidated dashboard reusing every report above |
+| `cli.py` | Interactive menu for the core reports |
+| `fix_step9_data.py`, `fix_step18_data.py`, `fix_step18_data_v2.py` | One-off data corrections for bugs found and fixed along the way |
 
-## Key SQL / database concepts covered
+## Key concepts covered
 
-- `SERIAL PRIMARY KEY` and foreign keys (`REFERENCES`)
-- `CHECK` constraints
-- Parameterized queries (`%s` placeholders) to prevent SQL injection —
-  never build SQL with f-strings
-- `RETURNING id` to get auto-generated IDs back immediately
-- `JOIN` (inner, `LEFT JOIN`, `CROSS JOIN`) to combine data across tables
-- `GROUP BY` with `SUM` / `COUNT` for aggregation
-- `CASE WHEN ... THEN ... ELSE ... END` for conditional sums
-- `COALESCE` to handle `NULL` from products with no movements yet
-- `HAVING` to filter on an aggregated value
-- **Transactions** (`COMMIT` / `ROLLBACK`) for all-or-nothing operations
-- **Row locking** (`SELECT ... FOR UPDATE`) to prevent race conditions
-  under concurrent access
-- **Schema migrations** (`ALTER TABLE`, `information_schema` checks) to
-  evolve a schema without losing existing data
-- **Window functions** (`RANK() OVER (PARTITION BY ...)`) for
-  "top N per group" queries that `GROUP BY` alone can't answer
-- **CTEs** (`WITH ... AS`) for breaking a
+- Foreign keys, `CHECK` constraints, parameterized queries (SQL-injection-safe)
+- `JOIN`, `GROUP BY`, `CASE WHEN`, `COALESCE`, `HAVING`
+- **Transactions** (`COMMIT`/`ROLLBACK`) and **row locking** (`SELECT ... FOR UPDATE`)
+- **Schema migrations**: `ALTER TABLE ADD COLUMN`, widening `CHECK` constraints and column types
+- **Window functions** (`RANK() OVER (PARTITION BY ...)`) and **CTEs**
+- **Indexes** and reading a query plan with `EXPLAIN ANALYZE`
+- **Document lifecycles** (pending -> received/fulfilled, with locking to prevent double-processing)
+- **Stock reservation** vs physical stock (available vs on-shelf)
+- **Regulatory-style unique-mark tracking** (EGAIS/Mercury), preventing double-use
+
+## Setup
+
+1. Install PostgreSQL and create a database (e.g. `warehouse_db`).
+2. Copy `.env.example` to `.env` and fill in your real database password.
+3. `pip install -r requirements.txt`
+4. Run the steps in order, `python step1_connect.py` through `python step22_dashboard.py`.
+5. Explore interactively: `python cli.py`
+
+## Sample output
+
+```
+=== Products below 100 units in stock ===
+SKU        Name                       Unit  Current stock
+SKU-005    Перфоратор Bosch GBH 2-26  pcs   12.00
+```
