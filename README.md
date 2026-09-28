@@ -40,6 +40,7 @@ level, not just in Python code.
 | `step2_create_tables.py` | Creates the schema: `categories`, `products`, `stock_movements` |
 | `step3_insert_data.py` | Inserts sample data using parameterized queries (SQL-injection-safe) |
 | `step4_queries.py` | Reporting queries: current stock per product, low-stock alerts, movement volume by category |
+| `step5_transactions.py` | Transactions: safely shipping stock with rollback if it would go negative |
 
 ## Key SQL concepts covered
 
